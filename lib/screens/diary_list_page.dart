@@ -107,7 +107,6 @@ class CustomListView extends StatelessWidget {
       required this.onDelete,
       required this.onUpdate});
 
-  // todo 역순 정렬
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
