@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class DiaryInputPage extends StatefulWidget {
-  const DiaryInputPage({super.key});
+  final String? initContent;
+  const DiaryInputPage({super.key, this.initContent});
 
   @override
   State<DiaryInputPage> createState() => _DiaryInputPageState();
@@ -38,7 +39,7 @@ class _DiaryInputPageState extends State<DiaryInputPage> {
   @override
   void initState() {
     super.initState();
-    textEditingController = TextEditingController();
+    textEditingController = TextEditingController(text: widget.initContent);
   }
 
   @override
