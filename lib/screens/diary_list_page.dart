@@ -56,7 +56,7 @@ class _DiaryListPageState extends State<DiaryListPage> {
       body: FutureBuilder<List<Diary>>(
         future: diaries,
         builder: (context, snapshot) {
-          var items = snapshot.data?.reversed.toList() ?? [];
+          var items = snapshot.data ?? [];
           return ListView(
             children: groupDiaryByYear(items).entries.map((entry) {
               return Column(

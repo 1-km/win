@@ -27,7 +27,7 @@ class DatabaseHelper {
 
   Future<List<Diary>> getDiaries() async {
     await initDatabase();
-    List<Map<String, dynamic>> maps = await _database!.query('diary');
+    List<Map<String, dynamic>> maps = await _database!.rawQuery('select * from diary order by createdAt desc');
 
     return List.generate(maps.length, (index) {
       return Diary(
