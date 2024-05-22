@@ -8,7 +8,6 @@ class DiaryInputPage extends StatefulWidget {
   State<DiaryInputPage> createState() => _DiaryInputPageState();
 }
 
-// todo update 기능
 class _DiaryInputPageState extends State<DiaryInputPage> {
   late TextEditingController textEditingController;
 
