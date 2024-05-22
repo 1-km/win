@@ -1,3 +1,4 @@
+import 'package:diary/database/database_helper.dart';
 import 'package:diary/models/diary.dart';
 import 'package:diary/screens/diary_input_page.dart';
 import 'package:flutter/material.dart';
@@ -10,21 +11,18 @@ class DiaryListPage extends StatefulWidget {
 }
 
 class _DiaryListPageState extends State<DiaryListPage> {
-
-  List<Diary> items = [
-    Diary(content: "diary-1", createdAt: DateTime(2021, 05, 19)),
-    Diary(content: "diary-2", createdAt: DateTime(2022, 05, 19)),
-    Diary(content: "diary-3", createdAt: DateTime(2022, 05, 19)),
-    Diary(content: "diary-4", createdAt: DateTime(2022, 05, 19)),
-    Diary(content: "diary-5", createdAt: DateTime(2023, 01, 19)),
-  ];
-
+  DatabaseHelper dbHelper = DatabaseHelper();
+  late Future<List<Diary>> diaries;
 
   @override
   void initState() {
     super.initState();
+    dbHelper.insertDiary(Diary(content: "diary-1", createdAt: DateTime(2012, 5, 13)));
+    dbHelper.insertDiary(Diary(content: "diary-2", createdAt: DateTime(2013, 5, 13)));
+    dbHelper.insertDiary(Diary(content: "diary-3", createdAt: DateTime(2014, 5, 13)));
+    dbHelper.insertDiary(Diary(content: "diary-4", createdAt: DateTime(2020, 5, 13)));
+    diaries = dbHelper.getDiaries();
   }
-
 
   @override
   void dispose() {
@@ -37,34 +35,62 @@ class _DiaryListPageState extends State<DiaryListPage> {
       appBar: AppBar(
         title: const Text("일기"),
         actions: [
-          IconButton(onPressed: () {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const DiaryInputPage())).then((
-                value) {
-              setState(() {
-                items.add(Diary(content: value, createdAt: DateTime.now()));
-              });
-            });
-          }, icon: const Icon(Icons.create))
+          IconButton(
+              onPressed: () {
+                Navigator.of(context)
+                    .push(MaterialPageRoute(
+                        builder: (_) => const DiaryInputPage()))
+                    .then((value) {
+                  if (!value.isEmpty) {
+                    setState(() {
+                      dbHelper.insertDiary(
+                          Diary(content: value, createdAt: DateTime.now()));
+                      diaries = dbHelper.getDiaries();
+                    });
+                  }
+                });
+              },
+              icon: const Icon(Icons.create))
         ],
       ),
-      body: ListView(
-        children: groupDiaryByYear(items).entries.map((entry) {
-          return Column(
-            children: [
-              Padding(padding: const EdgeInsets.all(10),
-                child: Text('${entry.key}', style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),),),
-              CustomListView(items: entry.value, onDelete: (Diary) {
-                setState(() {
-                  items.remove(Diary);
-                });
-              })
-            ],
+      body: FutureBuilder<List<Diary>>(
+        future: diaries,
+        builder: (context, snapshot) {
+          var items = snapshot.data ?? [];
+          return ListView(
+            children: groupDiaryByYear(items).entries.map((entry) {
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Text(
+                      '${entry.key}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  CustomListView(
+                    items: entry.value,
+                    onDelete: (customId) {
+                      setState(() {
+                        dbHelper.deleteDiary(customId);
+                        diaries = dbHelper.getDiaries();
+                      });
+                    },
+                    onUpdate: (customDiary) {
+                      setState(() {
+                        dbHelper.updateDiary(customDiary);
+                        diaries = dbHelper.getDiaries();
+                      });
+                    },
+                  )
+                ],
+              );
+            }).toList(),
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -72,10 +98,14 @@ class _DiaryListPageState extends State<DiaryListPage> {
 
 class CustomListView extends StatelessWidget {
   final List<Diary> items;
-  final Function(Diary) onDelete;
+  final Function(int) onDelete;
+  final Function(Diary) onUpdate;
 
   const CustomListView(
-      {super.key, required this.items, required this.onDelete});
+      {super.key,
+      required this.items,
+      required this.onDelete,
+      required this.onUpdate});
 
   // todo 역순 정렬
   @override
@@ -85,22 +115,34 @@ class CustomListView extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
         itemBuilder: (context, index) {
-          var customIem = items[index];
           return ListTile(
             title: Text(items[index].content),
             subtitle: Text(items[index].createdAt.toString()),
             tileColor: Colors.greenAccent[100],
             trailing: IconButton(
               onPressed: () {
-                onDelete(customIem);
+                onDelete(items[index].id!);
               },
               icon: const Icon(Icons.delete),
             ),
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => DiaryInputPage(
+                          initContent: items[index].content))).then((value) {
+                if (items[index].content != value) {
+                  onUpdate(Diary(
+                      id: items[index].id,
+                      content: value,
+                      createdAt: items[index].createdAt));
+                }
+              });
+            },
           );
         });
   }
 }
-
 
 Map<int, List<Diary>> groupDiaryByYear(List<Diary> items) {
   Map<int, List<Diary>> diaryByYear = {};
@@ -109,7 +151,8 @@ Map<int, List<Diary>> groupDiaryByYear(List<Diary> items) {
     int year = item.createdAt.year;
     if (!diaryByYear.containsKey(year)) {
       diaryByYear[year] = [];
-    };
+    }
+    ;
     diaryByYear[year]?.add(item);
   }
   return diaryByYear;
